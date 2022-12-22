@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import io.lumine.mythic.bukkit.MythicBukkit;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -120,31 +121,31 @@ public class DropsManager {
 						
 			// second line of lore is amount to give on pickup
 			lore.add(String.valueOf(amount));
-			
+
+			// removes decimal place
+			final String finalAmount = disableDecimal ? String.format("%.0f", amount) : String.format("%.2f", amount);
+			final String itemName = plugin.getPickUpManager().getItemName().replace("%amount%", finalAmount);
+
 			// third line of lore is player who killed the mob
 			if (p != null)
 				lore.add(p.getName());
 			
 			meta.setLore(lore);
+			meta.displayName(LegacyComponentSerializer.legacyAmpersand().deserialize(itemName));
+
 			item.setItemMeta(meta);
 
-			String strAmount = String.format("%.2f", amount);
-			// removes decimal place
-			if (disableDecimal)
-				strAmount = String.format("%.0f", amount);
-
-			final String finalAmount = strAmount;
 			Item itemDropped;
 			if (VersionUtils.getVersionNumber() > 15){
-				itemDropped = location.getWorld().dropItemNaturally(location, item, itemdropped ->{
+				itemDropped = location.getWorld().dropItemNaturally(location, item, itemdropped -> {
 					itemdropped.setCustomNameVisible(true);
-					itemdropped.setCustomName(plugin.getPickUpManager().getItemName().replace("%amount%", finalAmount));
+					itemdropped.setCustomName(itemName);
 				});
 			}
 			else {
 				itemDropped = location.getWorld().dropItemNaturally(location, item);
 				itemDropped.setCustomNameVisible(true);
-				itemDropped.setCustomName(plugin.getPickUpManager().getItemName().replace("%amount%", finalAmount));
+				itemDropped.setCustomName(itemName);
 			}
 
 			// schedules task to remove drop in certain amount of time if enabled
