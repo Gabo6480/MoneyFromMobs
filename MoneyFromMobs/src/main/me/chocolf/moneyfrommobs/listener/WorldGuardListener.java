@@ -1,5 +1,6 @@
 package me.chocolf.moneyfrommobs.listener;
 
+import com.sk89q.worldguard.protection.flags.StateFlag;
 import me.chocolf.moneyfrommobs.integration.WorldGuardFlags;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -32,19 +33,32 @@ public class WorldGuardListener implements Listener{
 		RegionQuery query = container.createQuery();
 		ApplicableRegionSet set = query.getApplicableRegions(BukkitAdapter.adapt(loc));
 
+
+		// if player-drop-money flag is deny and entity is a player cancel the drop
+		if(entity instanceof Player){
+			StateFlag.State state = set.queryState(null, WorldGuardFlags.getPlayerDropMoneyFlag());
+			// if state is null, we skip and allow drop-money to handle it
+			if(state != null){
+				if (state == StateFlag.State.DENY) {
+					e.setCancelled(true);
+					return;
+				}
+				else if(state == StateFlag.State.ALLOW)
+					return;
+			}
+
+		}
+
 		// if drop-money flag is deny cancel the drop
 		if (!set.testState(null, WorldGuardFlags.getDropMoneyFlag())){
 			e.setCancelled(true);
-		}
-
-		// if player-drop-money flag is deny and entity is a player cancel the drop
-		else if(!set.testState(null, WorldGuardFlags.getPlayerDropMoneyFlag()) && entity instanceof Player){
-			e.setCancelled(true);
+			return;
 		}
 
 		// if spawner-mob-drop-money flag is deny and entity was spawned from a spawner cancel the drop
-		else if (!set.testState(null, WorldGuardFlags.getSpawnerMobDropMoneyFlag()) && MoneyFromMobs.getInstance().getDropsManager().getSpawnReason(entity).equals("SPAWNER")){
+		if (!set.testState(null, WorldGuardFlags.getSpawnerMobDropMoneyFlag()) && MoneyFromMobs.getInstance().getDropsManager().getSpawnReason(entity).equals("SPAWNER")){
 			e.setCancelled(true);
+			return;
 		}
 	}
 }
